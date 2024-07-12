@@ -1,5 +1,6 @@
 class PrototypesController < ApplicationController
     before_action :authenticate_user!, only: [:new, :create, :edit, :update, :destroy]
+    before_action :authorize_user!, only: [:edit, :update]
 
   def index
     @user_name = current_user.name if user_signed_in?
@@ -13,7 +14,7 @@ class PrototypesController < ApplicationController
   def create
     @prototype = Prototype.new(prototype_params)
     @prototype.user = current_user
-
+  
     if @prototype.save
       redirect_to root_path
     else
@@ -36,6 +37,7 @@ class PrototypesController < ApplicationController
     if @prototype.update(prototype_params)
       redirect_to prototype_path(@prototype)
     else
+      logger.debug "Prototype update failed: #{@prototype.errors.full_messages.join(", ")}"
       render :edit
     end
   end
@@ -45,7 +47,13 @@ class PrototypesController < ApplicationController
     @prototype.destroy
     redirect_to root_path
   end
+
   private
+
+  def authorize_user!
+    @prototype = Prototype.find(params[:id])
+    redirect_to root_path unless @prototype.user == current_user
+  end
 
   def prototype_params
     params.require(:prototype).permit(:title, :catch_copy, :concept, :image)
